@@ -1,11 +1,15 @@
+import org.gradle.api.file.DuplicatesStrategy
+import org.gradle.api.tasks.SourceSetContainer
+
 plugins {
     kotlin("jvm")
 }
 
 val kotlinVersion: String by project
+val commonProject = project(":common")
 
 dependencies {
-    implementation(project(":common"))
+    compileOnly(project(":common"))
     implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:$kotlinVersion")
 }
 
@@ -15,4 +19,9 @@ kotlin {
     }
 }
 
-// Use the standard JAR; compiler plugin classpath should be configured via Gradle configs.
+tasks.named<Jar>("jar") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    dependsOn(commonProject.tasks.named("classes"))
+    val commonSourceSets = commonProject.extensions.getByType<SourceSetContainer>()
+    from(commonSourceSets["main"].output)
+}
