@@ -7,6 +7,7 @@ import org.jetbrains.kotlin.fir.analysis.checkers.declaration.FirDeclarationChec
 import org.jetbrains.kotlin.fir.declarations.FirAnonymousInitializer
 import org.jetbrains.kotlin.fir.declarations.FirConstructor
 import org.jetbrains.kotlin.fir.declarations.FirProperty
+import org.jetbrains.kotlin.fir.declarations.utils.isNonLocal
 import org.jetbrains.kotlin.fir.declarations.FirPropertyAccessor
 import org.jetbrains.kotlin.fir.declarations.FirSimpleFunction
 
@@ -41,7 +42,7 @@ object CheckedExceptionsAnonymousInitializerChecker : FirDeclarationChecker<FirA
 object CheckedExceptionsPropertyChecker : FirDeclarationChecker<FirProperty>(MppCheckerKind.Common) {
     context(context: CheckerContext, reporter: DiagnosticReporter)
     override fun check(declaration: FirProperty) {
-        if (declaration.isLocal) return
+        if (!declaration.isNonLocal) return
         val initializer = declaration.initializer ?: return
         CheckedExceptionsAnalyzer(context, reporter).analyzeExpression(initializer)
     }

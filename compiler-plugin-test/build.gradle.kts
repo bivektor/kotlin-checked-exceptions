@@ -26,7 +26,3 @@ kotlin {
 tasks.named("compileKotlin").configure {
     dependsOn(":compiler-plugin:jar")
 }
-
-tasks.named<Jar>("jar") {
-    archiveBaseName.set("bivektor-kotlin-checked-exceptions-${project.name}")
-}
