@@ -9,5 +9,4 @@ rootProject.name = "kotlin-checked-exceptions"
 
 include(":common")
 include(":compiler-plugin")
-include(":idea-plugin")
 include(":compiler-plugin-test")
