@@ -28,5 +28,5 @@ tasks.named("compileKotlin").configure {
 }
 
 tasks.named<Jar>("jar") {
-    archiveFileName.set("compiler-plugin-test.jar")
+    archiveBaseName.set("bivektor-kotlin-checked-exceptions-${project.name}")
 }
