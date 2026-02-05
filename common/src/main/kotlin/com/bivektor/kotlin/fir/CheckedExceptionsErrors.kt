@@ -9,7 +9,7 @@ import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
 
 object CheckedExceptionsErrors : KtDiagnosticsContainer() {
     val CALL_THROWS_CHECKED: KtDiagnosticFactory1<String> = KtDiagnosticFactory1(
-        "CALL_THROWS_CHECKED",
+        "CheckedExceptionsKotlin",
         Severity.WARNING,
         SourceElementPositioningStrategies.DEFAULT,
         PsiElement::class,
