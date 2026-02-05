@@ -1,7 +1,7 @@
 package com.bivektor.kotlin.fir
 
 import org.jetbrains.kotlin.fir.FirSession
-import org.jetbrains.kotlin.fir.FirSessionComponent
+import org.jetbrains.kotlin.fir.extensions.FirExtensionSessionComponent
 import org.jetbrains.kotlin.fir.caches.FirCache
 import org.jetbrains.kotlin.fir.caches.createCache
 import org.jetbrains.kotlin.fir.caches.firCachesFactory
@@ -12,7 +12,7 @@ import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
 import org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirPropertySymbol
 
-class CheckedExceptionsCache(session: FirSession) : FirSessionComponent {
+class CheckedExceptionsCache(session: FirSession) : FirExtensionSessionComponent(session) {
     private val caches = session.firCachesFactory
     private val typeContext = session.typeContext
 
