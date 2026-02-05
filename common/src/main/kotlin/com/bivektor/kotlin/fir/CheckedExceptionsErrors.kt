@@ -7,7 +7,7 @@ import org.jetbrains.kotlin.diagnostics.SourceElementPositioningStrategies
 
 object CheckedExceptionsErrors {
     val CALL_THROWS_CHECKED: KtDiagnosticFactory1<String> = KtDiagnosticFactory1(
-        "CheckedExceptionsKotlin",
+        "KOTLIN_CHECKED_EXCEPTIONS",
         Severity.WARNING,
         SourceElementPositioningStrategies.DEFAULT,
         PsiElement::class
