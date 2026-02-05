@@ -2,19 +2,14 @@ package com.bivektor.kotlin.fir
 
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.diagnostics.KtDiagnosticFactory1
-import org.jetbrains.kotlin.diagnostics.KtDiagnosticsContainer
 import org.jetbrains.kotlin.diagnostics.Severity
 import org.jetbrains.kotlin.diagnostics.SourceElementPositioningStrategies
-import org.jetbrains.kotlin.diagnostics.rendering.BaseDiagnosticRendererFactory
 
-object CheckedExceptionsErrors : KtDiagnosticsContainer() {
+object CheckedExceptionsErrors {
     val CALL_THROWS_CHECKED: KtDiagnosticFactory1<String> = KtDiagnosticFactory1(
         "CALL_THROWS_CHECKED",
         Severity.WARNING,
         SourceElementPositioningStrategies.DEFAULT,
-        PsiElement::class,
-        getRendererFactory()
+        PsiElement::class
     )
-
-    override fun getRendererFactory(): BaseDiagnosticRendererFactory = CheckedExceptionsDefaultMessages
 }
