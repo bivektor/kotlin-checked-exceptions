@@ -12,36 +12,51 @@ import org.jetbrains.kotlin.fir.declarations.FirPropertyAccessor
 import org.jetbrains.kotlin.fir.declarations.FirSimpleFunction
 
 object CheckedExceptionsSimpleFunctionChecker : FirDeclarationChecker<FirSimpleFunction>(MppCheckerKind.Common) {
-    context(context: CheckerContext, reporter: DiagnosticReporter)
-    override fun check(declaration: FirSimpleFunction) {
+    override fun check(
+        declaration: FirSimpleFunction,
+        context: CheckerContext,
+        reporter: DiagnosticReporter
+    ) {
         CheckedExceptionsAnalyzer(context, reporter).analyze(declaration)
     }
 }
 
 object CheckedExceptionsPropertyAccessorChecker : FirDeclarationChecker<FirPropertyAccessor>(MppCheckerKind.Common) {
-    context(context: CheckerContext, reporter: DiagnosticReporter)
-    override fun check(declaration: FirPropertyAccessor) {
+    override fun check(
+        declaration: FirPropertyAccessor,
+        context: CheckerContext,
+        reporter: DiagnosticReporter
+    ) {
         CheckedExceptionsAnalyzer(context, reporter).analyze(declaration)
     }
 }
 
 object CheckedExceptionsConstructorChecker : FirDeclarationChecker<FirConstructor>(MppCheckerKind.Common) {
-    context(context: CheckerContext, reporter: DiagnosticReporter)
-    override fun check(declaration: FirConstructor) {
+    override fun check(
+        declaration: FirConstructor,
+        context: CheckerContext,
+        reporter: DiagnosticReporter
+    ) {
         CheckedExceptionsAnalyzer(context, reporter).analyze(declaration)
     }
 }
 
 object CheckedExceptionsAnonymousInitializerChecker : FirDeclarationChecker<FirAnonymousInitializer>(MppCheckerKind.Common) {
-    context(context: CheckerContext, reporter: DiagnosticReporter)
-    override fun check(declaration: FirAnonymousInitializer) {
+    override fun check(
+        declaration: FirAnonymousInitializer,
+        context: CheckerContext,
+        reporter: DiagnosticReporter
+    ) {
         CheckedExceptionsAnalyzer(context, reporter).analyzeBody(declaration.body)
     }
 }
 
 object CheckedExceptionsPropertyChecker : FirDeclarationChecker<FirProperty>(MppCheckerKind.Common) {
-    context(context: CheckerContext, reporter: DiagnosticReporter)
-    override fun check(declaration: FirProperty) {
+    override fun check(
+        declaration: FirProperty,
+        context: CheckerContext,
+        reporter: DiagnosticReporter
+    ) {
         if (!declaration.isNonLocal) return
         val initializer = declaration.initializer ?: return
         CheckedExceptionsAnalyzer(context, reporter).analyzeExpression(initializer)
