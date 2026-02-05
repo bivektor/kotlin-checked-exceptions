@@ -1,4 +1,4 @@
-val artifactSuffix: String by project
+val kotlinVersion: String by project
 
 subprojects {
   repositories {
@@ -6,6 +6,6 @@ subprojects {
   }
 
   tasks.withType<Jar>().configureEach {
-    archiveBaseName.set("bivektor-kotlin-checked-exceptions-${project.name}-$artifactSuffix")
+    archiveBaseName.set("bivektor-kotlin-checked-exceptions-${project.name}-k$kotlinVersion")
   }
 }
