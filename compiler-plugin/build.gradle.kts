@@ -10,7 +10,7 @@ val commonProject = project(":common")
 
 dependencies {
     compileOnly(project(":common"))
-    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:$kotlinVersion")
+    compileOnly("org.jetbrains.kotlin:kotlin-compiler-embeddable:$kotlinVersion")
 }
 
 kotlin {
