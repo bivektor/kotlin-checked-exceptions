@@ -5,41 +5,28 @@ import org.jetbrains.kotlin.KtSourceElement
 import org.jetbrains.kotlin.diagnostics.DiagnosticReporter
 import org.jetbrains.kotlin.diagnostics.reportOn
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContext
-import org.jetbrains.kotlin.fir.analysis.checkers.extractClassesFromArgument
 import org.jetbrains.kotlin.fir.FirElement
+import org.jetbrains.kotlin.fir.caches.getValue
 import org.jetbrains.kotlin.fir.declarations.FirFunction
 import org.jetbrains.kotlin.fir.declarations.FirProperty
-import org.jetbrains.kotlin.fir.declarations.findArgumentByName
-import org.jetbrains.kotlin.fir.declarations.toAnnotationClassId
 import org.jetbrains.kotlin.fir.expressions.*
 import org.jetbrains.kotlin.fir.references.isError
 import org.jetbrains.kotlin.fir.references.toResolvedPropertySymbol
 import org.jetbrains.kotlin.fir.references.toResolvedFunctionSymbol
 import org.jetbrains.kotlin.fir.resolve.defaultType
 import org.jetbrains.kotlin.fir.resolve.fullyExpandedType
-import org.jetbrains.kotlin.fir.resolve.providers.symbolProvider
 import org.jetbrains.kotlin.fir.types.ConeKotlinType
 import org.jetbrains.kotlin.fir.types.classLikeLookupTagIfAny
 import org.jetbrains.kotlin.fir.types.coneType
 import org.jetbrains.kotlin.fir.types.resolvedType
 import org.jetbrains.kotlin.fir.visitors.FirVisitor
-import org.jetbrains.kotlin.fir.types.typeContext
-import org.jetbrains.kotlin.name.ClassId
-import org.jetbrains.kotlin.name.FqName
-import org.jetbrains.kotlin.name.Name
-import org.jetbrains.kotlin.name.StandardClassIds
-import org.jetbrains.kotlin.types.AbstractTypeChecker
-import org.jetbrains.kotlin.com.intellij.psi.PsiMethod
 
 class CheckedExceptionsAnalyzer(
     private val context: CheckerContext,
     private val reporter: DiagnosticReporter
 ) {
-    private val throwsClassIds = setOf(
-        ClassId.topLevel(FqName("kotlin.Throws")),
-        ClassId.topLevel(FqName("kotlin.jvm.Throws"))
-    )
-    private val throwsParamName = Name.identifier("exceptionClasses")
+    private val cache = context.session.checkedExceptionsCache
+    private val throwsExtractor = CheckedExceptionsThrowsExtractor(context.session)
 
     private val throwableType: ConeKotlinType? = resolveType("kotlin.Throwable")
         ?: resolveType("java.lang.Throwable")
@@ -49,8 +36,6 @@ class CheckedExceptionsAnalyzer(
 
     private val errorType: ConeKotlinType? = resolveType("kotlin.Error")
         ?: resolveType("java.lang.Error")
-
-    private val typeContext = context.session.typeContext
 
     fun analyze(function: FirFunction) {
         val body = function.body ?: return
@@ -133,7 +118,7 @@ class CheckedExceptionsAnalyzer(
         if (calleeReference.isError()) return
         val symbol = calleeReference.toResolvedFunctionSymbol() ?: return
 
-        val thrownTypes = collectThrowsTypes(symbol)
+        val thrownTypes = cache.throwsTypesByFunction.getValue(symbol, context)
         for (type in thrownTypes) {
             recordThrown(call.source, type, catches, declaredInFunction, state)
         }
@@ -146,8 +131,7 @@ class CheckedExceptionsAnalyzer(
         state: AnalysisState
     ) {
         val propertySymbol = access.calleeReference.toResolvedPropertySymbol() ?: return
-        val getter = propertySymbol.getterSymbol ?: return
-        val thrownTypes = collectThrowsTypes(getter)
+        val thrownTypes = cache.getterThrowsByProperty.getValue(propertySymbol, context)
         for (type in thrownTypes) {
             recordThrown(access.source, type, catches, declaredInFunction, state)
         }
@@ -161,8 +145,7 @@ class CheckedExceptionsAnalyzer(
     ) {
         val access = assignment.lValue as? FirPropertyAccessExpression ?: return
         val propertySymbol = access.calleeReference.toResolvedPropertySymbol() ?: return
-        val setter = propertySymbol.setterSymbol ?: return
-        val thrownTypes = collectThrowsTypes(setter)
+        val thrownTypes = cache.setterThrowsByProperty.getValue(propertySymbol, context)
         for (type in thrownTypes) {
             recordThrown(assignment.source, type, catches, declaredInFunction, state)
         }
@@ -192,7 +175,7 @@ class CheckedExceptionsAnalyzer(
     private fun isSubtype(subType: ConeKotlinType, superType: ConeKotlinType): Boolean {
         val expandedSub = subType.fullyExpandedType(context.session)
         val expandedSuper = superType.fullyExpandedType(context.session)
-        if (AbstractTypeChecker.isSubtypeOf(typeContext, expandedSub, expandedSuper)) return true
+        if (cache.subtypeCache.getValue(expandedSub to expandedSuper)) return true
         return isSubtypeByReflection(expandedSub, expandedSuper)
     }
 
@@ -242,40 +225,7 @@ class CheckedExceptionsAnalyzer(
     }
 
     private fun declaredThrows(function: FirFunction): List<ExceptionType> {
-        val annotation = function.symbol.resolvedAnnotationsWithArguments.firstOrNull {
-            isThrowsAnnotation(it)
-        }
-            ?: return emptyList()
-        return annotation.extractThrownExceptionTypes(context).mapNotNull { toExceptionType(it) }
-    }
-
-    private fun collectThrowsTypes(
-        symbol: org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol<*>
-    ): List<ConeKotlinType> {
-        val fromAnnotation = symbol.resolvedAnnotationsWithArguments.firstOrNull { isThrowsAnnotation(it) }
-            ?.extractThrownExceptionTypes(context)
-            .orEmpty()
-        val fromJava = extractJavaThrows(symbol)
-        return fromAnnotation + fromJava
-    }
-
-    private fun extractJavaThrows(
-        symbol: org.jetbrains.kotlin.fir.symbols.impl.FirFunctionSymbol<*>
-    ): List<ConeKotlinType> {
-        val source = symbol.source as? KtPsiSourceElement ?: return emptyList()
-        val psiMethod = source.psi as? PsiMethod ?: return emptyList()
-        val referenced = psiMethod.throwsList.referencedTypes
-        if (referenced.isEmpty()) return emptyList()
-        return referenced.mapNotNull { type ->
-            val fqName = type.canonicalText.substringBefore('<')
-            resolveType(fqName)
-        }
-    }
-
-    private fun isThrowsAnnotation(annotation: FirAnnotation): Boolean {
-        val classId = annotation.toAnnotationClassId(context.session) ?: return false
-        if (classId in throwsClassIds) return true
-        return classId.shortClassName.asString() == "Throws"
+        return throwsExtractor.declaredThrows(function, context).mapNotNull { toExceptionType(it) }
     }
 
     private fun isDeclaredInFunction(
@@ -285,19 +235,8 @@ class CheckedExceptionsAnalyzer(
         return declaredInFunction.any { declaredType -> isSubtype(thrownType, declaredType.type) }
     }
 
-    private fun FirAnnotation.extractThrownExceptionTypes(context: CheckerContext): List<ConeKotlinType> {
-        val argument = findArgumentByName(throwsParamName)
-            ?: findArgumentByName(StandardClassIds.Annotations.ParameterNames.value)
-            ?: return emptyList()
-        return argument.extractClassesFromArgument(context.session)
-            .mapNotNull { it.defaultType() }
-    }
-
     private fun resolveType(fqName: String): ConeKotlinType? {
-        val classId = ClassId.topLevel(FqName(fqName))
-        val symbol = context.session.symbolProvider.getClassLikeSymbolByClassId(classId)
-            ?: return null
-        return symbol.defaultType()
+        return cache.resolvedTypeByFqName.getValue(fqName)
     }
 
     private inner class Visitor(
