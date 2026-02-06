@@ -31,7 +31,7 @@ publishing {
     publications {
         register<MavenPublication>("github") {
             from(components["java"])
-            artifactId = "kotlin-checked-exceptions-compiler-plugin-k$kotlinVersion"
+            artifactId = "kotlin-plugin-checked-exceptions-k$kotlinVersion"
         }
     }
     repositories {
